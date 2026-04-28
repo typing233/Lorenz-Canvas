@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>洛伦兹吸引子 - 蝴蝶效应可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: rgba(20, 20, 40, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(100, 100, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-panel h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .slider-group {
+            margin-bottom: 15px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .slider-label .value {
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 212, 255, 0.5);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4757, #cc0000);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
+        }
+        
+        .btn-butterfly {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            color: white;
+        }
+        
+        .btn-butterfly:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 380px;
+            background: rgba(20, 20, 40, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(100, 100, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-panel h2 {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+        
+        .param-info {
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        .param-info .name {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        
+        .coordinates {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .coord-group {
+            flex: 1;
+        }
+        
+        .coord-group h3 {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        .coord-values {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .coord-values span {
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        
+        .coord-values .color-1 {
+            color: #00d4ff;
+        }
+        
+        .coord-values .color-2 {
+            color: #ff4757;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .legend-dot.blue {
+            background: #00d4ff;
+        }
+        
+        .legend-dot.red {
+            background: #ff4757;
+        }
+        
+        .help-text {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(20, 20, 40, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 10;
+            font-size: 0.85rem;
+            border: 1px solid rgba(100, 100, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .help-text p {
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        
+        .help-text span {
+            color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="help-text">
+        <p><span>🖱️ 鼠标左键</span>: 旋转视角</p>
+        <p><span>🖱️ 鼠标右键</span>: 平移视角</p>
+        <p><span>🔄 滚轮</span>: 缩放</p>
+    </div>
+    
+    <div class="control-panel">
+        <h1>洛伦兹吸引子</h1>
+        <p class="subtitle">混沌理论可视化 - 蝴蝶效应演示</p>
+        
+        <div class="section">
+            <div class="section-title">参数控制</div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>σ (Sigma):</span>
+                    <span class="value" id="sigma-value">10.00</span>
+                </div>
+                <input type="range" id="sigma" min="0" max="30" step="0.1" value="10">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>ρ (Rho):</span>
+                    <span class="value" id="rho-value">28.00</span>
+                </div>
+                <input type="range" id="rho" min="0" max="100" step="0.1" value="28">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>β (Beta):</span>
+                    <span class="value" id="beta-value">2.67</span>
+                </div>
+                <input type="range" id="beta" min="0" max="10" step="0.01" value="2.6667">
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">控制按钮</div>
+            <div class="btn-group">
+                <button class="btn btn-butterfly" id="btn-butterfly">🦋 蝴蝶效应</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btn-start">▶ 开始</button>
+                <button class="btn btn-danger" id="btn-reset">🔄 重置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-panel">
+        <h2>参数说明</h2>
+        
+        <div class="param-info">
+            <span class="name">σ (Sigma) - 普朗特数</span>: 控制流体的粘性系数。决定了系统的整体运动速率。经典值为10。
+        </div>
+        
+        <div class="param-info">
+            <span class="name">ρ (Rho) - 瑞利数</span>: 控制温度梯度。决定了系统从规则运动到混沌运动的临界点。当ρ > 24.74时，系统进入混沌状态。
+        </div>
+        
+        <div class="param-info">
+            <span class="name">β (Beta) - 几何参数</span>: 描述对流单元格的宽高比。经典值为8/3 ≈ 2.6667。
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot blue"></div>
+                <span>粒子 A</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot red"></div>
+                <span>粒子 B (初始差: 0.00001)</span>
+            </div>
+        </div>
+        
+        <div class="coordinates">
+            <div class="coord-group">
+                <h3>粒子 A 坐标</h3>
+                <div class="coord-values">
+                    <span class="color-1">X: <span id="p1-x">0.000</span></span>
+                    <span class="color-1">Y: <span id="p1-y">0.000</span></span>
+                    <span class="color-1">Z: <span id="p1-z">0.000</span></span>
+                </div>
+            </div>
+            <div class="coord-group">
+                <h3>粒子 B 坐标</h3>
+                <div class="coord-values">
+                    <span class="color-2">X: <span id="p2-x">0.000</span></span>
+                    <span class="color-2">Y: <span id="p2-y">0.000</span></span>
+                    <span class="color-2">Z: <span id="p2-z">0.000</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // OrbitControls - 简单实现
+        class OrbitControls {
+            constructor(camera, domElement) {
+                this.camera = camera;
+                this.domElement = domElement;
+                
+                this.target = new THREE.Vector3(0, 0, 0);
+                this.enabled = true;
+                
+                this.dampingFactor = 0.05;
+                this.enableDamping = true;
+                
+                this.enableZoom = true;
+                this.zoomSpeed = 1.0;
+                
+                this.enableRotate = true;
+                this.rotateSpeed = 1.0;
+                
+                this.enablePan = true;
+                this.panSpeed = 1.0;
+                
+                this.minDistance = 10;
+                this.maxDistance = 500;
+                
+                this.spherical = new THREE.Spherical();
+                this.sphericalDelta = new THREE.Spherical();
+                this.panOffset = new THREE.Vector3();
+                this.zoomChanged = false;
+                
+                this.isRotating = false;
+                this.isPanning = false;
+                this.isZooming = false;
+                
+                this.rotateStart = new THREE.Vector2();
+                this.rotateEnd = new THREE.Vector2();
+                this.rotateDelta = new THREE.Vector2();
+                
+                this.panStart = new THREE.Vector2();
+                this.panEnd = new THREE.Vector2();
+                this.panDelta = new THREE.Vector2();
+                
+                this.zoomStart = new THREE.Vector2();
+                this.zoomEnd = new THREE.Vector2();
+                this.zoomDelta = new THREE.Vector2();
+                
+                this.connect();
+            }
+            
+            connect() {
+                this.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this), false);
+                this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this), false);
+                this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this), false);
+                this.domElement.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+                this.domElement.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+                this.domElement.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+                
+                document.addEventListener('mousemove', this.onMouseMove.bind(this), false);
+                document.addEventListener('mouseup', this.onMouseUp.bind(this), false);
+            }
+            
+            onContextMenu(event) {
+                if (this.enabled) event.preventDefault();
+            }
+            
+            onMouseDown(event) {
+                if (this.enabled === false) return;
+                event.preventDefault();
+                
+                switch (event.button) {
+                    case 0:
+                        this.isRotating = true;
+                        this.rotateStart.set(event.clientX, event.clientY);
+                        break;
+                    case 2:
+                        this.isPanning = true;
+                        this.panStart.set(event.clientX, event.clientY);
+                        break;
+                }
+            }
+            
+            onMouseMove(event) {
+                if (this.enabled === false) return;
+                event.preventDefault();
+                
+                if (this.isRotating) {
+                    this.rotateEnd.set(event.clientX, event.clientY);
+                    this.rotateDelta.subVectors(this.rotateEnd, this.rotateStart);
+                    
+                    const element = this.domElement;
+                    this.sphericalDelta.theta -= 2 * Math.PI * this.rotateDelta.x / element.clientWidth * this.rotateSpeed;
+                    this.sphericalDelta.phi -= 2 * Math.PI * this.rotateDelta.y / element.clientHeight * this.rotateSpeed;
+                    
+                    this.rotateStart.copy(this.rotateEnd);
+                }
+                
+                if (this.isPanning) {
+                    this.panEnd.set(event.clientX, event.clientY);
+                    this.panDelta.subVectors(this.panEnd, this.panStart);
+                    this.pan(this.panDelta.x, this.panDelta.y);
+                    this.panStart.copy(this.panEnd);
+                }
+            }
+            
+            onMouseUp(event) {
+                if (this.enabled === false) return;
+                this.isRotating = false;
+                this.isPanning = false;
+            }
+            
+            onMouseWheel(event) {
+                if (this.enabled === false || this.enableZoom === false) return;
+                event.preventDefault();
+                event.stopPropagation();
+                
+                this.zoomDelta.y = event.deltaY * 0.01;
+                this.zoomChanged = true;
+            }
+            
+            onTouchStart(event) {
+                if (this.enabled === false) return;
+                event.preventDefault();
+                
+                const touches = event.touches;
+                switch (touches.length) {
+                    case 1:
+                        this.isRotating = true;
+                        this.rotateStart.set(touches[0].pageX, touches[0].pageY);
+                        break;
+                    case 2:
+                        this.isZooming = true;
+                        const dx = touches[0].pageX - touches[1].pageX;
+                        const dy = touches[0].pageY - touches[1].pageY;
+                        this.zoomStart.y = Math.sqrt(dx * dx + dy * dy);
+                        break;
+                }
+            }
+            
+            onTouchEnd(event) {
+                if (this.enabled === false) return;
+                this.isRotating = false;
+                this.isZooming = false;
+            }
+            
+            onTouchMove(event) {
+                if (this.enabled === false) return;
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const touches = event.touches;
+                switch (touches.length) {
+                    case 1:
+                        if (this.isRotating) {
+                            this.rotateEnd.set(touches[0].pageX, touches[0].pageY);
+                            this.rotateDelta.subVectors(this.rotateEnd, this.rotateStart);
+                            
+                            const element = this.domElement;
+                            this.sphericalDelta.theta -= 2 * Math.PI * this.rotateDelta.x / element.clientWidth * this.rotateSpeed;
+                            this.sphericalDelta.phi -= 2 * Math.PI * this.rotateDelta.y / element.clientHeight * this.rotateSpeed;
+                            
+                            this.rotateStart.copy(this.rotateEnd);
+                        }
+                        break;
+                    case 2:
+                        if (this.isZooming) {
+                            const dx = touches[0].pageX - touches[1].pageX;
+                            const dy = touches[0].pageY - touches[1].pageY;
+                            this.zoomEnd.y = Math.sqrt(dx * dx + dy * dy);
+                            this.zoomDelta.y = this.zoomStart.y - this.zoomEnd.y;
+                            this.zoomChanged = true;
+                            this.zoomStart.copy(this.zoomEnd);
+                        }
+                        break;
+                }
+            }
+            
+            pan(deltaX, deltaY) {
+                const offset = new THREE.Vector3();
+                const element = this.domElement;
+                
+                const position = this.camera.position;
+                offset.copy(position).sub(this.target);
+                let targetDistance = offset.length();
+                targetDistance *= Math.tan((this.camera.fov / 2) * Math.PI / 180.0);
+                
+                const panLeft = 2 * deltaX * targetDistance / element.clientHeight * this.panSpeed;
+                const panUp = 2 * deltaY * targetDistance / element.clientHeight * this.panSpeed;
+                
+                const v = new THREE.Vector3();
+                v.setFromMatrixColumn(this.camera.matrix, 0);
+                v.multiplyScalar(-panLeft);
+                this.panOffset.add(v);
+                
+                v.setFromMatrixColumn(this.camera.matrix, 1);
+                v.multiplyScalar(panUp);
+                this.panOffset.add(v);
+            }
+            
+            update() {
+                const offset = new THREE.Vector3();
+                
+                const spherical = this.spherical;
+                const sphericalDelta = this.sphericalDelta;
+                const panOffset = this.panOffset;
+                const zoomChanged = this.zoomChanged;
+                
+                const position = this.camera.position;
+                
+                offset.copy(position).sub(this.target);
+                spherical.setFromVector3(offset);
+                
+                spherical.theta += sphericalDelta.theta;
+                spherical.phi += sphericalDelta.phi;
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                
+                if (zoomChanged) {
+                    spherical.radius *= Math.pow(0.95, this.zoomDelta.y * this.zoomSpeed);
+                }
+                
+                spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, spherical.radius));
+                
+                this.target.add(panOffset);
+                
+                offset.setFromSpherical(spherical);
+                position.copy(this.target).add(offset);
+                
+                this.camera.lookAt(this.target);
+                
+                if (this.enableDamping) {
+                    sphericalDelta.theta *= (1 - this.dampingFactor);
+                    sphericalDelta.phi *= (1 - this.dampingFactor);
+                    panOffset.multiplyScalar(1 - this.dampingFactor);
+                } else {
+                    sphericalDelta.set(0, 0, 0);
+                    panOffset.set(0, 0, 0);
+                }
+                
+                this.zoomDelta.set(0, 0, 0);
+                this.zoomChanged = false;
+            }
+        }
+        
+        // 洛伦兹吸引子模拟
+        class LorenzSimulation {
+            constructor(sigma = 10, rho = 28, beta = 8/3) {
+                this.sigma = sigma;
+                this.rho = rho;
+                this.beta = beta;
+                this.dt = 0.01;
+                
+                this.particles = [];
+                this.trajectories = [];
+                this.maxTrajectoryLength = 2000;
+            }
+            
+            setParams(sigma, rho, beta) {
+                this.sigma = sigma;
+                this.rho = rho;
+                this.beta = beta;
+            }
+            
+            addParticle(x, y, z, color = 0x00d4ff) {
+                const particle = { x, y, z, color };
+                this.particles.push(particle);
+                this.trajectories.push([]);
+                return this.particles.length - 1;
+            }
+            
+            clear() {
+                this.particles = [];
+                this.trajectories = [];
+            }
+            
+            step() {
+                for (let i = 0; i < this.particles.length; i++) {
+                    const p = this.particles[i];
+                    
+                    const dx = this.sigma * (p.y - p.x);
+                    const dy = p.x * (this.rho - p.z) - p.y;
+                    const dz = p.x * p.y - this.beta * p.z;
+                    
+                    p.x += dx * this.dt;
+                    p.y += dy * this.dt;
+                    p.z += dz * this.dt;
+                    
+                    this.trajectories[i].push({ x: p.x, y: p.y, z: p.z });
+                    
+                    if (this.trajectories[i].length > this.maxTrajectoryLength) {
+                        this.trajectories[i].shift();
+                    }
+                }
+            }
+            
+            getParticle(index) {
+                return this.particles[index];
+            }
+            
+            getTrajectory(index) {
+                return this.trajectories[index];
+            }
+        }
+        
+        // 主应用
+        class LorenzApp {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                this.isRunning = false;
+                this.autoStart = true;
+                
+                this.init();
+                this.setupUI();
+                this.animate();
+            }
+            
+            init() {
+                // 场景
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0a0a1a);
+                
+                // 相机
+                this.camera = new THREE.PerspectiveCamera(
+                    60,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    2000
+                );
+                this.camera.position.set(0, 50, 150);
+                
+                // 渲染器
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.container.appendChild(this.renderer.domElement);
+                
+                // 控制器
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.target.set(0, 0, 0);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                
+                // 坐标轴辅助
+                const axesHelper = new THREE.AxesHelper(50);
+                this.scene.add(axesHelper);
+                
+                // 网格
+                const gridHelper = new THREE.GridHelper(100, 20, 0x333333, 0x222222);
+                this.scene.add(gridHelper);
+                
+                // 模拟
+                this.simulation = new LorenzSimulation(10, 28, 8/3);
+                
+                // 轨迹线条
+                this.trajectoryLines = [];
+                
+                // 粒子球体
+                this.particleMeshes = [];
+                
+                // 环境光
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+                this.scene.add(ambientLight);
+                
+                // 点光源
+                const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+                pointLight.position.set(50, 100, 50);
+                this.scene.add(pointLight);
+                
+                // 事件监听
+                window.addEventListener('resize', this.onWindowResize.bind(this));
+            }
+            
+            setupUI() {
+                // 滑块
+                this.sigmaSlider = document.getElementById('sigma');
+                this.rhoSlider = document.getElementById('rho');
+                this.betaSlider = document.getElementById('beta');
+                
+                this.sigmaValue = document.getElementById('sigma-value');
+                this.rhoValue = document.getElementById('rho-value');
+                this.betaValue = document.getElementById('beta-value');
+                
+                // 坐标显示
+                this.p1x = document.getElementById('p1-x');
+                this.p1y = document.getElementById('p1-y');
+                this.p1z = document.getElementById('p1-z');
+                this.p2x = document.getElementById('p2-x');
+                this.p2y = document.getElementById('p2-y');
+                this.p2z = document.getElementById('p2-z');
+                
+                // 按钮
+                this.btnStart = document.getElementById('btn-start');
+                this.btnReset = document.getElementById('btn-reset');
+                this.btnButterfly = document.getElementById('btn-butterfly');
+                
+                // 事件监听
+                this.sigmaSlider.addEventListener('input', this.updateParams.bind(this));
+                this.rhoSlider.addEventListener('input', this.updateParams.bind(this));
+                this.betaSlider.addEventListener('input', this.updateParams.bind(this));
+                
+                this.btnStart.addEventListener('click', this.toggleSimulation.bind(this));
+                this.btnReset.addEventListener('click', this.resetSimulation.bind(this));
+                this.btnButterfly.addEventListener('click', this.startButterflyEffect.bind(this));
+                
+                // 初始化显示
+                this.updateParams();
+                
+                // 自动启动蝴蝶效应
+                setTimeout(() => {
+                    this.startButterflyEffect();
+                }, 500);
+            }
+            
+            updateParams() {
+                const sigma = parseFloat(this.sigmaSlider.value);
+                const rho = parseFloat(this.rhoSlider.value);
+                const beta = parseFloat(this.betaSlider.value);
+                
+                this.sigmaValue.textContent = sigma.toFixed(2);
+                this.rhoValue.textContent = rho.toFixed(2);
+                this.betaValue.textContent = beta.toFixed(2);
+                
+                this.simulation.setParams(sigma, rho, beta);
+            }
+            
+            createTrajectoryLine(color) {
+                const geometry = new THREE.BufferGeometry();
+                const material = new THREE.LineBasicMaterial({ 
+                    color: color,
+                    linewidth: 2,
+                    opacity: 0.9,
+                    transparent: true
+                });
+                
+                const line = new THREE.Line(geometry, material);
+                this.scene.add(line);
+                return line;
+            }
+            
+            createParticleMesh(color) {
+                const geometry = new THREE.SphereGeometry(1.5, 16, 16);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.3
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                this.scene.add(mesh);
+                return mesh;
+            }
+            
+            startButterflyEffect() {
+                this.resetSimulation(false);
+                
+                const initialDiff = 0.00001;
+                
+                const p1 = this.simulation.addParticle(1, 1, 1, 0x00d4ff);
+                const p2 = this.simulation.addParticle(1 + initialDiff, 1, 1, 0xff4757);
+                
+                this.trajectoryLines.push(this.createTrajectoryLine(0x00d4ff));
+                this.trajectoryLines.push(this.createTrajectoryLine(0xff4757));
+                
+                this.particleMeshes.push(this.createParticleMesh(0x00d4ff));
+                this.particleMeshes.push(this.createParticleMesh(0xff4757));
+                
+                this.isRunning = true;
+                this.btnStart.textContent = '⏸ 暂停';
+            }
+            
+            toggleSimulation() {
+                if (this.simulation.particles.length === 0) {
+                    this.simulation.addParticle(1, 1, 1, 0x00d4ff);
+                    this.trajectoryLines.push(this.createTrajectoryLine(0x00d4ff));
+                    this.particleMeshes.push(this.createParticleMesh(0x00d4ff));
+                }
+                
+                this.isRunning = !this.isRunning;
+                this.btnStart.textContent = this.isRunning ? '⏸ 暂停' : '▶ 开始';
+            }
+            
+            resetSimulation(showMessage = true) {
+                this.isRunning = false;
+                this.btnStart.textContent = '▶ 开始';
+                
+                for (const line of this.trajectoryLines) {
+                    this.scene.remove(line);
+                    line.geometry.dispose();
+                    line.material.dispose();
+                }
+                
+                for (const mesh of this.particleMeshes) {
+                    this.scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                }
+                
+                this.trajectoryLines = [];
+                this.particleMeshes = [];
+                this.simulation.clear();
+                
+                this.p1x.textContent = '0.000';
+                this.p1y.textContent = '0.000';
+                this.p1z.textContent = '0.000';
+                this.p2x.textContent = '0.000';
+                this.p2y.textContent = '0.000';
+                this.p2z.textContent = '0.000';
+            }
+            
+            updateTrajectoryGeometry(line, trajectory) {
+                if (trajectory.length < 2) return;
+                
+                const positions = new Float32Array(trajectory.length * 3);
+                
+                for (let i = 0; i < trajectory.length; i++) {
+                    positions[i * 3] = trajectory[i].x;
+                    positions[i * 3 + 1] = trajectory[i].y;
+                    positions[i * 3 + 2] = trajectory[i].z;
+                }
+                
+                line.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                line.geometry.computeBoundingSphere();
+            }
+            
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                
+                if (this.isRunning) {
+                    for (let i = 0; i < 5; i++) {
+                        this.simulation.step();
+                    }
+                    
+                    for (let i = 0; i < this.trajectoryLines.length; i++) {
+                        this.updateTrajectoryGeometry(
+                            this.trajectoryLines[i],
+                            this.simulation.getTrajectory(i)
+                        );
+                    }
+                    
+                    for (let i = 0; i < this.particleMeshes.length; i++) {
+                        const particle = this.simulation.getParticle(i);
+                        if (particle) {
+                            this.particleMeshes[i].position.set(particle.x, particle.y, particle.z);
+                        }
+                    }
+                    
+                    this.updateCoordinates();
+                }
+                
+                this.controls.update();
+                this.renderer.render(this.scene, this.camera);
+            }
+            
+            updateCoordinates() {
+                const p1 = this.simulation.getParticle(0);
+                const p2 = this.simulation.getParticle(1);
+                
+                if (p1) {
+                    this.p1x.textContent = p1.x.toFixed(3);
+                    this.p1y.textContent = p1.y.toFixed(3);
+                    this.p1z.textContent = p1.z.toFixed(3);
+                }
+                
+                if (p2) {
+                    this.p2x.textContent = p2.x.toFixed(3);
+                    this.p2y.textContent = p2.y.toFixed(3);
+                    this.p2z.textContent = p2.z.toFixed(3);
+                }
+            }
+            
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+        
+        // 启动应用
+        window.addEventListener('DOMContentLoaded', () => {
+            new LorenzApp();
+        });
+    </script>
+</body>
+</html>
