@@ -27,8 +27,89 @@ class LorenzAttractorVisualization {
         
         // 初始化
         this.init();
+        this.createWarningOverlay();
         this.setupEventListeners();
         this.animate();
+    }
+    
+    // 检测数值是否有效（不是NaN或Infinity）
+    isValidNumber(value) {
+        return typeof value === 'number' && !isNaN(value) && isFinite(value);
+    }
+    
+    // 检测粒子位置是否有效
+    isParticlePositionValid(particle) {
+        return this.isValidNumber(particle.position.x) &&
+               this.isValidNumber(particle.position.y) &&
+               this.isValidNumber(particle.position.z);
+    }
+    
+    // 创建警告覆盖层
+    createWarningOverlay() {
+        const container = document.getElementById('canvas-container');
+        
+        // 创建警告元素
+        const warningOverlay = document.createElement('div');
+        warningOverlay.id = 'warning-overlay';
+        warningOverlay.className = 'warning-overlay';
+        warningOverlay.innerHTML = `
+            <div class="warning-content">
+                <div class="warning-icon">⚠️</div>
+                <h3 class="warning-title">数值异常警告</h3>
+                <p class="warning-message" id="warning-message"></p>
+                <button class="warning-close-btn" id="warning-close-btn">确定</button>
+            </div>
+        `;
+        warningOverlay.style.display = 'none';
+        container.appendChild(warningOverlay);
+        
+        // 添加关闭按钮事件
+        document.getElementById('warning-close-btn').addEventListener('click', () => {
+            this.hideWarning();
+        });
+    }
+    
+    // 显示警告
+    showWarning(message) {
+        const overlay = document.getElementById('warning-overlay');
+        const messageElement = document.getElementById('warning-message');
+        
+        messageElement.textContent = message;
+        overlay.style.display = 'flex';
+        
+        // 添加aria属性以支持无障碍
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'warning-title');
+        overlay.focus();
+    }
+    
+    // 隐藏警告
+    hideWarning() {
+        const overlay = document.getElementById('warning-overlay');
+        overlay.style.display = 'none';
+        overlay.removeAttribute('role');
+        overlay.removeAttribute('aria-modal');
+        overlay.removeAttribute('aria-labelledby');
+    }
+    
+    // 处理数值异常
+    handleNumericalError(particle) {
+        this.pauseSimulation();
+        
+        const warningMessage = `检测到数值异常！
+粒子 "${particle.name}" 的坐标出现无效值（NaN 或 Infinity）。
+这可能是由于参数设置不当导致的。
+建议：
+- 减小时间步长（dt）
+- 检查参数设置是否在合理范围内
+- 当前参数：σ=${this.sigma.toFixed(2)}, ρ=${this.rho.toFixed(2)}, β=${this.beta.toFixed(3)}
+
+模拟已自动暂停，请重置后使用更安全的参数。`;
+
+        this.showWarning(warningMessage);
+        console.error('Numerical error detected for particle:', particle.name);
+        console.error('Current position:', particle.position);
     }
     
     // 初始化Three.js场景
@@ -144,6 +225,12 @@ class LorenzAttractorVisualization {
     calculateNextStep(particle) {
         const { x, y, z } = particle.position;
         
+        // 首先检查当前位置是否有效
+        if (!this.isParticlePositionValid(particle)) {
+            this.handleNumericalError(particle);
+            return false;
+        }
+        
         // 洛伦兹微分方程
         // dx/dt = σ(y - x)
         // dy/dt = x(ρ - z) - y
@@ -153,10 +240,31 @@ class LorenzAttractorVisualization {
         const dy = (x * (this.rho - z) - y) * this.dt;
         const dz = (x * y - this.beta * z) * this.dt;
         
+        // 检查计算出的增量是否有效
+        if (!this.isValidNumber(dx) || !this.isValidNumber(dy) || !this.isValidNumber(dz)) {
+            this.handleNumericalError(particle);
+            return false;
+        }
+        
         // 更新位置
         particle.position.x += dx;
         particle.position.y += dy;
         particle.position.z += dz;
+        
+        // 再次检查更新后的位置是否有效
+        if (!this.isParticlePositionValid(particle)) {
+            this.handleNumericalError(particle);
+            return false;
+        }
+        
+        // 额外的边界检查 - 防止坐标过大
+        const maxPosition = 1000;
+        if (Math.abs(particle.position.x) > maxPosition ||
+            Math.abs(particle.position.y) > maxPosition ||
+            Math.abs(particle.position.z) > maxPosition) {
+            this.handleNumericalError(particle);
+            return false;
+        }
         
         // 更新网格位置
         particle.mesh.position.set(
@@ -180,6 +288,8 @@ class LorenzAttractorVisualization {
         
         // 更新轨迹几何体
         this.updateTrail(particle);
+        
+        return true;
     }
     
     // 更新轨迹
@@ -401,14 +511,21 @@ class LorenzAttractorVisualization {
         if (this.isRunning) {
             // 每帧多次迭代，让运动更快
             const iterationsPerFrame = 10;
-            for (let i = 0; i < iterationsPerFrame; i++) {
-                this.particles.forEach(particle => {
-                    this.calculateNextStep(particle);
-                });
+            let hasError = false;
+            
+            for (let i = 0; i < iterationsPerFrame && !hasError; i++) {
+                for (let j = 0; j < this.particles.length && !hasError; j++) {
+                    const result = this.calculateNextStep(this.particles[j]);
+                    if (result === false) {
+                        hasError = true;
+                    }
+                }
             }
             
-            // 更新坐标显示
-            this.updateCoordinates();
+            // 如果没有错误，更新坐标显示
+            if (!hasError) {
+                this.updateCoordinates();
+            }
         }
         
         // 渲染
