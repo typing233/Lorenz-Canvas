@@ -125,6 +125,20 @@ body {
     box-shadow: 0 0 15px rgba(74, 158, 255, 0.8);
 }
 
+.parameter input[type="range"]:focus {
+    outline: none;
+}
+
+.parameter input[type="range"]:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.3), 0 0 20px rgba(74, 158, 255, 0.8);
+    border: 2px solid #ffffff;
+}
+
+.parameter input[type="range"]:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.3), 0 0 20px rgba(74, 158, 255, 0.8);
+    border: 2px solid #ffffff;
+}
+
 .description {
     font-size: 0.85em;
     color: #9ca3af;
@@ -225,6 +239,18 @@ body {
 
 .btn-warning:active {
     transform: translateY(0);
+}
+
+.btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(74, 158, 255, 0.5), 0 0 20px rgba(74, 158, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px rgba(74, 158, 255, 0.6), 0 0 30px rgba(74, 158, 255, 0.5);
 }
 
 #coordinates {
@@ -434,4 +460,153 @@ body {
     color: #4a9eff;
     font-size: 1.2em;
     font-weight: 500;
+}
+
+/* 警告覆盖层样式 */
+.warning-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(10px);
+}
+
+.warning-content {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border: 2px solid #ef4444;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.4),
+                0 10px 40px rgba(0, 0, 0, 0.5);
+    animation: warningPulse 2s infinite;
+}
+
+@keyframes warningPulse {
+    0%, 100% {
+        box-shadow: 0 0 40px rgba(239, 68, 68, 0.4),
+                    0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 60px rgba(239, 68, 68, 0.6),
+                    0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.warning-icon {
+    font-size: 4em;
+    margin-bottom: 15px;
+    animation: warningIconBounce 1s ease-in-out infinite;
+}
+
+@keyframes warningIconBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.warning-title {
+    color: #ef4444;
+    font-size: 1.5em;
+    margin-bottom: 15px;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.warning-message {
+    color: #e2e8f0;
+    font-size: 0.95em;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    text-align: left;
+    white-space: pre-line;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #ef4444;
+}
+
+.warning-close-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 1.1em;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.warning-close-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+.warning-close-btn:active {
+    transform: translateY(0);
+}
+
+.warning-close-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3),
+                0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+.warning-close-btn:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+}
+
+/* 无障碍焦点样式增强 */
+*:focus-visible {
+    outline: 3px solid #4a9eff;
+    outline-offset: 2px;
+}
+
+/* 为所有交互元素添加tabindex支持的样式 */
+button, input[type="range"] {
+    cursor: pointer;
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+    .btn:focus,
+    .parameter input[type="range"]:focus::-webkit-slider-thumb,
+    .warning-close-btn:focus {
+        outline: 4px solid #ffffff;
+        outline-offset: 4px;
+    }
+    
+    .btn:focus-visible,
+    .warning-close-btn:focus-visible {
+        outline: 5px solid #ffffff;
+        outline-offset: 5px;
+    }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .warning-content {
+        animation: none;
+    }
+    
+    .warning-icon {
+        animation: none;
+    }
 }
