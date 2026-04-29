@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>洛伦兹吸引子可视化 - Lorenz Attractor Visualization</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 3D画布区域 -->
+        <div id="canvas-container"></div>
+        
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <h2>洛伦兹吸引子可视化</h2>
+            <p class="subtitle">混沌理论与蝴蝶效应演示</p>
+            
+            <!-- 参数控制区域 -->
+            <div class="section">
+                <h3>系统参数</h3>
+                <div class="parameter">
+                    <label for="sigma">σ (Sigma): <span id="sigma-value">10</span></label>
+                    <input type="range" id="sigma" min="0" max="30" step="0.1" value="10">
+                    <p class="description">普朗特数 - 描述流体粘性与热扩散的比值</p>
+                </div>
+                
+                <div class="parameter">
+                    <label for="rho">ρ (Rho): <span id="rho-value">28</span></label>
+                    <input type="range" id="rho" min="0" max="50" step="0.1" value="28">
+                    <p class="description">瑞利数 - 控制对流强度，大于临界值时系统进入混沌</p>
+                </div>
+                
+                <div class="parameter">
+                    <label for="beta">β (Beta): <span id="beta-value">2.667</span></label>
+                    <input type="range" id="beta" min="0" max="10" step="0.001" value="2.667">
+                    <p class="description">描述流体层的几何形状参数</p>
+                </div>
+            </div>
+            
+            <!-- 功能按钮 -->
+            <div class="section">
+                <h3>控制</h3>
+                <button id="start-btn" class="btn btn-primary">开始模拟</button>
+                <button id="butterfly-btn" class="btn btn-secondary">蝴蝶效应演示</button>
+                <button id="clear-btn" class="btn btn-danger">清除轨迹</button>
+                <button id="reset-btn" class="btn btn-warning">重置</button>
+            </div>
+            
+            <!-- 实时坐标显示 -->
+            <div class="section">
+                <h3>实时坐标</h3>
+                <div id="coordinates">
+                    <div class="particle-coords">
+                        <h4>粒子 A (蓝色)</h4>
+                        <p>X: <span id="a-x">0.00000</span></p>
+                        <p>Y: <span id="a-y">1.00000</span></p>
+                        <p>Z: <span id="a-z">0.00000</span></p>
+                    </div>
+                    <div class="particle-coords">
+                        <h4>粒子 B (红色)</h4>
+                        <p>X: <span id="b-x">0.00001</span></p>
+                        <p>Y: <span id="b-y">1.00000</span></p>
+                        <p>Z: <span id="b-z">0.00000</span></p>
+                    </div>
+                    <div class="separator"></div>
+                    <div class="distance-info">
+                        <h4>粒子间距</h4>
+                        <p>距离: <span id="distance">0.00001</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 说明信息 -->
+            <div class="section info">
+                <h3>关于洛伦兹吸引子</h3>
+                <p>洛伦兹吸引子是由数学家和气象学家爱德华·洛伦兹于1963年发现的一个混沌系统。它描述了大气对流的简化模型。</p>
+                <p><strong>微分方程：</strong></p>
+                <code>
+dx/dt = σ(y - x)<br>
+dy/dt = x(ρ - z) - y<br>
+dz/dt = xy - βz
+                </code>
+                <p><strong>蝴蝶效应：</strong>当系统处于混沌状态时（如σ=10, ρ=28, β=8/3≈2.667），初始条件的微小差异会导致结果的巨大变化，这就是著名的"蝴蝶效应"。</p>
+            </div>
+            
+            <!-- 操作说明 -->
+            <div class="section instructions">
+                <h3>操作说明</h3>
+                <ul>
+                    <li><strong>鼠标左键拖动：</strong>旋转视角</li>
+                    <li><strong>鼠标滚轮：</strong>缩放场景</li>
+                    <li><strong>鼠标右键拖动：</strong>平移视角</li>
+                    <li><strong>"蝴蝶效应演示"按钮：</strong>生成两个初始位置差0.00001的粒子，观察它们如何逐渐分离</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入Three.js库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
