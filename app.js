@@ -1,12 +1,10 @@
-// 混沌吸引子可视化应用 - 增强版
+// 混沌吸引子可视化应用 - 增强版 v2
+// 改进：双轨独立过渡系统 - 旧轨迹消隐，新轨迹从旧位置开始显现
+
 class AttractorSystem {
     constructor() {
         this.attractors = this.initAttractors();
         this.currentAttractor = 'lorenz';
-        this.isTransitioning = false;
-        this.transitionProgress = 0;
-        this.transitionDuration = 180;
-        this.previousAttractor = null;
     }
 
     initAttractors() {
@@ -77,81 +75,20 @@ class AttractorSystem {
         };
     }
 
+    getAttractor(name) {
+        return this.attractors[name];
+    }
+
     getCurrentAttractor() {
         return this.attractors[this.currentAttractor];
     }
 
     setAttractor(name) {
-        if (this.attractors[name] && name !== this.currentAttractor) {
-            this.previousAttractor = this.currentAttractor;
+        if (this.attractors[name]) {
             this.currentAttractor = name;
-            this.isTransitioning = true;
-            this.transitionProgress = 0;
             return true;
         }
         return false;
-    }
-
-    updateTransition() {
-        if (this.isTransitioning) {
-            this.transitionProgress += 1 / this.transitionDuration;
-            if (this.transitionProgress >= 1) {
-                this.transitionProgress = 1;
-                this.isTransitioning = false;
-                this.previousAttractor = null;
-            }
-        }
-        return this.isTransitioning;
-    }
-
-    getEasedProgress() {
-        const t = this.transitionProgress;
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    }
-
-    interpolateParams(fromParams, toParams, t) {
-        const result = {};
-        for (const key in toParams) {
-            const from = fromParams[key] !== undefined ? fromParams[key] : toParams[key];
-            result[key] = from + (toParams[key] - from) * t;
-        }
-        return result;
-    }
-
-    getInterpolatedEquations(position, dt) {
-        const current = this.getCurrentAttractor();
-        
-        if (!this.isTransitioning || !this.previousAttractor) {
-            return current.equations(position.x, position.y, position.z, current.params, dt);
-        }
-
-        const prev = this.attractors[this.previousAttractor];
-        const t = this.getEasedProgress();
-        
-        const prevResult = prev.equations(position.x, position.y, position.z, prev.params, dt);
-        const currentResult = current.equations(position.x, position.y, position.z, current.params, dt);
-        
-        return {
-            dx: prevResult.dx * (1 - t) + currentResult.dx * t,
-            dy: prevResult.dy * (1 - t) + currentResult.dy * t,
-            dz: prevResult.dz * (1 - t) + currentResult.dz * t
-        };
-    }
-
-    getInterpolatedColor() {
-        const current = this.getCurrentAttractor();
-        
-        if (!this.isTransitioning || !this.previousAttractor) {
-            return new THREE.Color(current.color);
-        }
-
-        const prev = this.attractors[this.previousAttractor];
-        const t = this.getEasedProgress();
-        
-        const prevColor = new THREE.Color(prev.color);
-        const currentColor = new THREE.Color(current.color);
-        
-        return prevColor.clone().lerp(currentColor, t);
     }
 }
 
@@ -159,13 +96,17 @@ class ParticleSystem {
     constructor(scene) {
         this.scene = scene;
         this.particles = [];
+        this.oldParticles = [];
         this.trailMeshes = [];
         this.maxParticles = 500;
         this.trailLength = 200;
         this.isMultiParticleMode = false;
+        this.isTransitioning = false;
+        this.transitionProgress = 0;
+        this.transitionDuration = 180;
     }
 
-    createParticle(initialX, initialY, initialZ, color, name, randomOffset = 0) {
+    createParticle(initialX, initialY, initialZ, color, name, randomOffset = 0, initialOpacity = 0.9) {
         const offsetX = (Math.random() - 0.5) * randomOffset;
         const offsetY = (Math.random() - 0.5) * randomOffset;
         const offsetZ = (Math.random() - 0.5) * randomOffset;
@@ -180,7 +121,7 @@ class ParticleSystem {
         const material = new THREE.MeshBasicMaterial({
             color: color,
             transparent: true,
-            opacity: 0.9
+            opacity: initialOpacity
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(position.x, position.y, position.z);
@@ -208,15 +149,18 @@ class ParticleSystem {
         trailGeometry.setAttribute('alpha', new THREE.BufferAttribute(trailAlphas, 1));
 
         const trailMaterial = new THREE.ShaderMaterial({
-            uniforms: {},
+            uniforms: {
+                globalOpacity: { value: 1.0 }
+            },
             vertexShader: `
                 attribute float alpha;
+                uniform float globalOpacity;
                 varying float vAlpha;
                 varying vec3 vColor;
                 attribute vec3 color;
                 
                 void main() {
-                    vAlpha = alpha;
+                    vAlpha = alpha * globalOpacity;
                     vColor = color;
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
@@ -250,8 +194,94 @@ class ParticleSystem {
             position: position,
             name: name,
             color: color,
-            velocity: { x: 0, y: 0, z: 0 }
+            velocity: { x: 0, y: 0, z: 0 },
+            baseOpacity: initialOpacity
         };
+    }
+
+    startDualTransition(oldAttractorName, newAttractorName, attractorSystem) {
+        if (this.particles.length === 0) return false;
+        
+        const oldAttractor = attractorSystem.getAttractor(oldAttractorName);
+        const newAttractor = attractorSystem.getAttractor(newAttractorName);
+        
+        if (!oldAttractor || !newAttractor) return false;
+        
+        this.oldParticles = [];
+        
+        this.particles.forEach(particle => {
+            this.oldParticles.push({
+                ...particle,
+                attractorName: oldAttractorName,
+                isOld: true
+            });
+        });
+        
+        const newParticles = [];
+        this.oldParticles.forEach((oldParticle, index) => {
+            const newParticle = this.createParticle(
+                oldParticle.position.x,
+                oldParticle.position.y,
+                oldParticle.position.z,
+                newAttractor.color,
+                `${oldParticle.name} (新)`,
+                0,
+                0.01
+            );
+            newParticle.attractorName = newAttractorName;
+            newParticle.isOld = false;
+            newParticle.targetOpacity = oldParticle.baseOpacity;
+            newParticles.push(newParticle);
+        });
+        
+        this.particles = newParticles;
+        
+        this.isTransitioning = true;
+        this.transitionProgress = 0;
+        
+        return true;
+    }
+
+    updateDualTransition() {
+        if (!this.isTransitioning) return false;
+        
+        this.transitionProgress += 1 / this.transitionDuration;
+        
+        const t = this.getEasedProgress();
+        
+        const oldOpacity = 1.0 - t;
+        const newOpacity = t;
+        
+        this.oldParticles.forEach(particle => {
+            particle.mesh.material.opacity = particle.baseOpacity * oldOpacity;
+            particle.trail.material.uniforms.globalOpacity.value = oldOpacity;
+        });
+        
+        this.particles.forEach(particle => {
+            const targetOpacity = particle.targetOpacity * newOpacity;
+            particle.mesh.material.opacity = Math.min(targetOpacity, particle.targetOpacity);
+            particle.trail.material.uniforms.globalOpacity.value = newOpacity;
+        });
+        
+        if (this.transitionProgress >= 1) {
+            this.transitionProgress = 1;
+            this.isTransitioning = false;
+            
+            this.oldParticles.forEach(particle => {
+                this.scene.remove(particle.mesh);
+                this.scene.remove(particle.trail);
+            });
+            this.oldParticles = [];
+            
+            return false;
+        }
+        
+        return true;
+    }
+
+    getEasedProgress() {
+        const t = this.transitionProgress;
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
     createMultiParticles(count, baseX, baseY, baseZ, baseColor) {
@@ -289,7 +319,7 @@ class ParticleSystem {
         this.particles = [particle];
     }
 
-    updateTrail(particle) {
+    updateTrail(particle, globalOpacityScale = 1.0) {
         const positions = particle.trail.geometry.attributes.position.array;
         const alphas = particle.trail.geometry.attributes.alpha.array;
         const colors = particle.trail.geometry.attributes.color.array;
@@ -310,7 +340,7 @@ class ParticleSystem {
             positions[i * 3 + 2] = particle.trailPoints[idx].z;
 
             const alphaRatio = i / this.trailLength;
-            alphas[i] = alphaRatio * alphaRatio * 0.8;
+            alphas[i] = alphaRatio * alphaRatio * 0.8 * globalOpacityScale;
 
             colors[i * 3] = colorObj.r;
             colors[i * 3 + 1] = colorObj.g;
@@ -332,8 +362,15 @@ class ParticleSystem {
             this.scene.remove(particle.mesh);
             this.scene.remove(particle.trail);
         });
+        this.oldParticles.forEach(particle => {
+            this.scene.remove(particle.mesh);
+            this.scene.remove(particle.trail);
+        });
+        
         this.particles = [];
+        this.oldParticles = [];
         this.isMultiParticleMode = false;
+        this.isTransitioning = false;
     }
 
     getParticleDistance() {
@@ -802,6 +839,10 @@ class EnhancedAttractorVisualization {
         this.controls = null;
         
         this.renderTarget = null;
+        this.quadScene = null;
+        this.quadCamera = null;
+        this.quadMesh = null;
+        this.bloomCompositeMaterial = null;
         
         this.init();
         this.createWarningOverlay();
@@ -967,9 +1008,6 @@ class EnhancedAttractorVisualization {
         const warningMessage = `检测到数值异常！
 粒子 "${particle.name}" 的坐标出现无效值（NaN 或 Infinity）。
 这可能是由于参数设置不当导致的。
-建议：
-- 减小时间步长（dt）
-- 检查参数设置是否在合理范围内
 
 模拟已自动暂停，请重置后使用更安全的参数。`;
 
@@ -1115,13 +1153,15 @@ class EnhancedAttractorVisualization {
         }
     }
 
-    calculateNextStep(particle) {
+    calculateNextStep(particle, attractorName) {
         if (!this.isParticlePositionValid(particle)) {
             this.handleNumericalError(particle);
             return false;
         }
 
-        const attractor = this.attractorSystem.getCurrentAttractor();
+        const attractor = this.attractorSystem.getAttractor(attractorName);
+        if (!attractor) return false;
+        
         const scale = attractor.scale;
         
         const scaledPosition = {
@@ -1130,7 +1170,13 @@ class EnhancedAttractorVisualization {
             z: particle.position.z / scale
         };
 
-        const result = this.attractorSystem.getInterpolatedEquations(scaledPosition, this.dt);
+        const result = attractor.equations(
+            scaledPosition.x, 
+            scaledPosition.y, 
+            scaledPosition.z, 
+            attractor.params, 
+            this.dt
+        );
         
         if (!this.isValidNumber(result.dx) || !this.isValidNumber(result.dy) || !this.isValidNumber(result.dz)) {
             this.handleNumericalError(particle);
@@ -1159,8 +1205,6 @@ class EnhancedAttractorVisualization {
             particle.position.y,
             particle.position.z
         );
-
-        this.particleSystem.updateTrail(particle);
 
         return true;
     }
@@ -1194,7 +1238,22 @@ class EnhancedAttractorVisualization {
     }
 
     switchAttractor(attractorName) {
-        if (this.attractorSystem.setAttractor(attractorName)) {
+        if (this.particleSystem.isTransitioning) return;
+        
+        const currentAttractor = this.attractorSystem.getCurrentAttractor();
+        
+        if (currentAttractor && attractorName !== this.attractorSystem.currentAttractor) {
+            const oldAttractorName = this.attractorSystem.currentAttractor;
+            
+            if (this.particleSystem.particles.length > 0) {
+                this.particleSystem.startDualTransition(
+                    oldAttractorName,
+                    attractorName,
+                    this.attractorSystem
+                );
+            }
+            
+            this.attractorSystem.setAttractor(attractorName);
             this.updateParamControls();
             this.updateAttractorInfo();
             this.updateAttractorButtons(attractorName);
@@ -1327,6 +1386,7 @@ class EnhancedAttractorVisualization {
         
         this.updateParamControls();
         this.updateAttractorInfo();
+        this.updateAttractorButtons('lorenz');
         
         this.camera.position.set(50, 30, 80);
         this.camera.lookAt(0, 0, 0);
@@ -1441,33 +1501,42 @@ class EnhancedAttractorVisualization {
         
         this.controls.update();
         
-        this.attractorSystem.updateTransition();
-        
-        if (this.attractorSystem.isTransitioning) {
-            const color = this.attractorSystem.getInterpolatedColor();
-            this.particleSystem.particles.forEach(particle => {
-                this.particleSystem.updateParticleColor(particle, color);
-            });
+        if (this.particleSystem.isTransitioning) {
+            this.particleSystem.updateDualTransition();
         }
         
         if (this.isRunning) {
             const iterationsPerFrame = 5;
             let hasError = false;
+            const currentAttractorName = this.attractorSystem.currentAttractor;
             
             for (let i = 0; i < iterationsPerFrame && !hasError; i++) {
                 for (let j = 0; j < this.particleSystem.particles.length && !hasError; j++) {
-                    const result = this.calculateNextStep(this.particleSystem.particles[j]);
+                    const particle = this.particleSystem.particles[j];
+                    const result = this.calculateNextStep(particle, particle.attractorName || currentAttractorName);
                     if (result === false) {
                         hasError = true;
+                    } else {
+                        this.particleSystem.updateTrail(particle);
                     }
                     
-                    if (this.audioSystem.isEnabled && j < 2) {
+                    if (this.audioSystem.isEnabled && j < 2 && !this.particleSystem.isTransitioning) {
                         const distance = this.particleSystem.getParticleDistance();
                         this.audioSystem.mapPositionToSound(
-                            this.particleSystem.particles[j].position,
+                            particle.position,
                             j,
                             this.particleSystem.particles.length >= 2 ? distance : 0
                         );
+                    }
+                }
+                
+                for (let j = 0; j < this.particleSystem.oldParticles.length && !hasError; j++) {
+                    const particle = this.particleSystem.oldParticles[j];
+                    const result = this.calculateNextStep(particle, particle.attractorName || currentAttractorName);
+                    if (result === false) {
+                        hasError = true;
+                    } else {
+                        this.particleSystem.updateTrail(particle);
                     }
                 }
             }
@@ -1485,7 +1554,6 @@ class EnhancedAttractorVisualization {
             
             this.bloomCompositeMaterial.uniforms.tDiffuse.value = this.renderTarget.texture;
             this.bloomCompositeMaterial.uniforms.tBloom.value = this.bloomEffect.renderTarget1.texture;
-            this.bloomCompositeMaterial.uniforms.needsUpdate = true;
             
             this.renderer.setRenderTarget(null);
             this.renderer.render(this.quadScene, this.quadCamera);
