@@ -207,14 +207,10 @@ class ParticleSystem {
         
         if (!oldAttractor || !newAttractor) return false;
         
-        this.oldParticles = [];
-        
-        this.particles.forEach(particle => {
-            this.oldParticles.push({
-                ...particle,
-                attractorName: oldAttractorName,
-                isOld: true
-            });
+        this.oldParticles = this.particles.map(particle => {
+            particle.attractorName = oldAttractorName;
+            particle.isOld = true;
+            return particle;
         });
         
         const newParticles = [];
@@ -228,6 +224,17 @@ class ParticleSystem {
                 0,
                 0.01
             );
+            
+            newParticle.trailPoints = oldParticle.trailPoints.map(v => v.clone());
+            
+            const positions = newParticle.trail.geometry.attributes.position.array;
+            for (let i = 0; i < this.trailLength; i++) {
+                positions[i * 3] = oldParticle.trailPoints[i].x;
+                positions[i * 3 + 1] = oldParticle.trailPoints[i].y;
+                positions[i * 3 + 2] = oldParticle.trailPoints[i].z;
+            }
+            newParticle.trail.geometry.attributes.position.needsUpdate = true;
+            
             newParticle.attractorName = newAttractorName;
             newParticle.isOld = false;
             newParticle.targetOpacity = oldParticle.baseOpacity;
