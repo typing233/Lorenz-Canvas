@@ -61,6 +61,60 @@ body {
     padding-bottom: 8px;
 }
 
+.attractor-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.btn-attractor {
+    padding: 10px 12px;
+    border: 2px solid rgba(74, 158, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(30, 41, 59, 0.6);
+    color: #9ca3af;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-attractor:hover {
+    border-color: #4a9eff;
+    color: #4a9eff;
+    background: rgba(74, 158, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-attractor.active {
+    border-color: #4a9eff;
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.3), rgba(37, 99, 235, 0.3));
+    color: #4a9eff;
+    box-shadow: 0 0 15px rgba(74, 158, 255, 0.3);
+}
+
+.attractor-info {
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border-left: 3px solid #4a9eff;
+}
+
+.attractor-info h3 {
+    font-size: 1em;
+    margin-bottom: 5px;
+    border-bottom: none;
+    padding-bottom: 0;
+    color: #e0e0e0;
+}
+
+.attractor-info p {
+    font-size: 0.85em;
+    color: #9ca3af;
+    line-height: 1.4;
+}
+
 .parameter {
     margin-bottom: 20px;
 }
@@ -144,6 +198,44 @@ body {
     color: #9ca3af;
     margin-top: 8px;
     line-height: 1.4;
+}
+
+.effect-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-effect {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    border: 2px solid rgba(74, 158, 255, 0.4);
+    border-radius: 8px;
+    background: rgba(30, 41, 59, 0.6);
+    color: #e0e0e0;
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-effect:hover {
+    border-color: #4a9eff;
+    background: rgba(74, 158, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-effect.active {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.multi-particle-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .btn {
@@ -366,7 +458,6 @@ body {
     color: #fbbf24;
 }
 
-/* 滚动条样式 */
 .control-panel::-webkit-scrollbar {
     width: 8px;
 }
@@ -385,7 +476,200 @@ body {
     background: #2563eb;
 }
 
-/* 响应式设计 */
+.llm-config-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    backdrop-filter: blur(10px);
+}
+
+.llm-config-content {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border: 2px solid #4a9eff;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 0 40px rgba(74, 158, 255, 0.4),
+                0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.llm-config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.llm-config-header h3 {
+    color: #4a9eff;
+    font-size: 1.5em;
+    text-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+}
+
+.llm-close-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.llm-close-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.llm-config-body {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.llm-param {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.llm-param label {
+    color: #e0e0e0;
+    font-weight: 500;
+    font-size: 0.95em;
+}
+
+.llm-param input {
+    padding: 12px 15px;
+    border: 2px solid rgba(74, 158, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #e0e0e0;
+    font-size: 1em;
+    font-family: 'Courier New', Courier, monospace;
+    transition: all 0.3s ease;
+}
+
+.llm-param input:focus {
+    outline: none;
+    border-color: #4a9eff;
+    box-shadow: 0 0 15px rgba(74, 158, 255, 0.3);
+}
+
+.llm-param input::placeholder {
+    color: #6b7280;
+}
+
+.llm-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #6b7280;
+    box-shadow: 0 0 8px rgba(107, 114, 128, 0.5);
+}
+
+.status-indicator.connected {
+    background: #10b981;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+    animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+    0%, 100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.8); }
+    50% { box-shadow: 0 0 20px rgba(16, 185, 129, 1); }
+}
+
+.llm-status span:last-child {
+    color: #9ca3af;
+    font-size: 0.9em;
+}
+
+.llm-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.llm-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.llm-btn-test {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+.llm-btn-test:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+}
+
+.llm-btn-test:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.llm-btn-save {
+    background: linear-gradient(135deg, #4a9eff, #2563eb);
+    color: white;
+    box-shadow: 0 4px 15px rgba(74, 158, 255, 0.4);
+}
+
+.llm-btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 158, 255, 0.6);
+}
+
+.llm-test-result {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    display: none;
+}
+
+.llm-test-result.success {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.llm-test-result.error {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
 @media (max-width: 1024px) {
     .container {
         flex-direction: column;
@@ -411,9 +695,20 @@ body {
         flex: 1;
         min-width: 140px;
     }
+    
+    .attractor-buttons {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .effect-controls {
+        flex-direction: column;
+    }
+    
+    .btn-effect {
+        min-width: 100%;
+    }
 }
 
-/* 动画效果 */
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
@@ -423,7 +718,6 @@ body {
     animation: pulse 1.5s infinite;
 }
 
-/* 加载提示 */
 .loading-overlay {
     position: absolute;
     top: 0;
@@ -462,7 +756,6 @@ body {
     font-weight: 500;
 }
 
-/* 警告覆盖层样式 */
 .warning-overlay {
     position: absolute;
     top: 0;
@@ -567,18 +860,15 @@ body {
     outline-offset: 2px;
 }
 
-/* 无障碍焦点样式增强 */
 *:focus-visible {
     outline: 3px solid #4a9eff;
     outline-offset: 2px;
 }
 
-/* 为所有交互元素添加tabindex支持的样式 */
 button, input[type="range"] {
     cursor: pointer;
 }
 
-/* 高对比度模式支持 */
 @media (prefers-contrast: high) {
     .btn:focus,
     .parameter input[type="range"]:focus::-webkit-slider-thumb,
@@ -594,7 +884,6 @@ button, input[type="range"] {
     }
 }
 
-/* 减少动画模式支持 */
 @media (prefers-reduced-motion: reduce) {
     * {
         animation-duration: 0.01ms !important;
